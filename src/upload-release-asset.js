@@ -1,5 +1,5 @@
 const core = require('@actions/core');
-const { GitHub } = require('@actions/github');
+const { GitHub, context } = require('@actions/github');
 const fs = require('fs');
 
 async function run() {
@@ -7,11 +7,32 @@ async function run() {
     // Get authenticated GitHub client (Ocktokit): https://github.com/actions/toolkit/tree/master/packages/github#usage
     const github = new GitHub(process.env.GITHUB_TOKEN);
 
+    // Get owner and repo from context of payload that triggered the action
+    const { owner, repo } = context.repo;
+
     // Get the inputs from the workflow file: https://github.com/actions/toolkit/tree/master/packages/core#inputsoutputs
+    const releaseId = core.getInput('release_id', { required: true });
     const uploadUrl = core.getInput('upload_url', { required: true });
     const assetPath = core.getInput('asset_path', { required: true });
     const assetName = core.getInput('asset_name', { required: true });
     const assetContentType = core.getInput('asset_content_type', { required: true });
+
+    const listAssetsResponse = await github.repos.listAssetsForRelease({
+      owner,
+      repo,
+      release_id: releaseId
+    });
+    const { data: assets } = listAssetsResponse;
+
+    assets.forEach(async asset => {
+      if (asset.name === assetName) {
+        await github.repos.deleteReleaseAsset({
+          owner,
+          repo,
+          asset_id: asset.id
+        });
+      }
+    });
 
     // Determine content-length for header to upload asset
     const contentLength = filePath => fs.statSync(filePath).size;

@@ -2,6 +2,9 @@ name: 'Upload a Release Asset'
 description: 'Upload a release asset to an existing release on your repository'
 author: 'GitHub'
 inputs:
+  release_id:
+    description: 'The id of the release'
+    required: true
   upload_url:
     description: 'The URL for uploading assets to the release'
     required: true
